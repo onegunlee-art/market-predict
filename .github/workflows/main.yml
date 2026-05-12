@@ -1,0 +1,10 @@
+name: CI
+on: [push] # 코드가 push될 때마다 실행
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run a one-line script
+        run: echo Hello, GitHub Actions!
