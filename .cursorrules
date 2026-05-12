@@ -1,0 +1,146 @@
+# Cultural Prediction Market Platform - Cursor Rules
+
+## Project Overview
+This is a production-grade global cultural prediction market platform.
+A realtime cultural prediction exchange where crowd sentiment becomes market probability.
+
+## Core Philosophy
+- This is a PREDICTION MARKET, not a casino or gambling site
+- Focus: K-POP, Movies, Drama, TV shows, Beauty products, Consumer products, Viral trends
+- AI-first probability generation with market-based price discovery
+- Realtime-native architecture with WebSocket-based updates
+
+## Tech Stack
+
+### Frontend
+- Next.js 14+ with App Router
+- TypeScript (strict mode)
+- TailwindCSS + shadcn/ui
+- Framer Motion for animations
+- Zustand for client state
+- React Query for server state
+
+### Backend
+- Fastify + TypeScript
+- PostgreSQL + Prisma ORM
+- Redis for caching and pub/sub
+
+### AI Engine
+- Python FastAPI
+- Pandas, NumPy
+- LightGBM, PyTorch-ready
+
+### Infrastructure
+- Docker + Docker Compose
+- NGINX for load balancing
+- pnpm + Turborepo monorepo
+
+## Coding Standards
+
+### TypeScript
+- Always use strict TypeScript
+- Prefer interfaces over types for object shapes
+- Use Zod for runtime validation
+- Export types from @market-predict/shared-types
+
+### React/Next.js
+- Use Server Components by default
+- Client Components only when necessary (interactivity, hooks)
+- Colocate components with their routes
+- Use React Query for data fetching in client components
+
+### API Design
+- RESTful endpoints with consistent naming
+- Use Fastify schemas for validation
+- Return consistent response shapes
+- Handle errors with proper HTTP status codes
+
+### Database
+- Use Prisma for all database operations
+- Write migrations for schema changes
+- Use transactions for multi-step operations
+- Index frequently queried fields
+
+### Styling
+- Mobile-first responsive design
+- Dark mode as default
+- Use Tailwind utility classes
+- Follow shadcn/ui patterns for components
+
+## File Organization
+
+### Monorepo Structure
+```
+apps/
+  web/           # Consumer Next.js app
+  admin/         # Admin Next.js app
+  api/           # Fastify API server
+  realtime/      # WebSocket server
+  ai-engine/     # Python FastAPI service
+
+packages/
+  ui/            # Shared UI components
+  shared-types/  # TypeScript types
+  market-engine/ # LMSR logic
+  utils/         # Shared utilities
+  database/      # Prisma schema
+  config/        # Shared configs
+```
+
+### Naming Conventions
+- Files: kebab-case (user-profile.tsx)
+- Components: PascalCase (UserProfile)
+- Functions: camelCase (getUserProfile)
+- Constants: UPPER_SNAKE_CASE (MAX_TRADE_AMOUNT)
+- Database tables: snake_case (user_profiles)
+
+## Code Quality
+
+### Do
+- Write self-documenting code
+- Add JSDoc for complex functions
+- Use meaningful variable names
+- Keep functions small and focused
+- Write unit tests for business logic
+
+### Don't
+- Skip type definitions
+- Use any type
+- Leave console.logs in production code
+- Write overly clever code
+- Ignore linter warnings
+
+## Market Engine Rules
+
+### LMSR Implementation
+- Cost Function: C(q) = b * ln(exp(q_yes/b) + exp(q_no/b))
+- Price Function: p_yes = exp(q_yes/b) / (exp(q_yes/b) + exp(q_no/b))
+- b = liquidity parameter (higher = more liquid, lower price impact)
+
+### Probability Updates
+1. AI generates prior probability
+2. Market opens with AI prior
+3. Trades shift probability via LMSR
+4. External events trigger recalculations
+
+## Security Considerations
+- Validate all user inputs
+- Use parameterized queries (Prisma handles this)
+- Implement rate limiting
+- Use JWT with short expiration
+- Store secrets in environment variables
+- Never log sensitive data
+
+## Performance Guidelines
+- Use React Query caching
+- Implement pagination for lists
+- Use Redis for hot data
+- Optimize database queries
+- Lazy load heavy components
+- Use WebSocket for realtime data
+
+## Git Workflow
+- Feature branches from main
+- Conventional commits (feat:, fix:, chore:, etc.)
+- PR reviews required
+- CI must pass before merge

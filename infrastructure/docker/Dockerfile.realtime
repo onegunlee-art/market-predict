@@ -1,0 +1,34 @@
+FROM node:20-alpine AS base
+RUN corepack enable && corepack prepare pnpm@8.14.0 --activate
+
+FROM base AS deps
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/realtime/package.json ./apps/realtime/
+COPY packages/config/package.json ./packages/config/
+COPY packages/shared-types/package.json ./packages/shared-types/
+COPY packages/utils/package.json ./packages/utils/
+RUN pnpm install --frozen-lockfile
+
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/realtime/node_modules ./apps/realtime/node_modules
+COPY --from=deps /app/packages ./packages
+COPY . .
+RUN pnpm run build --filter=@market-predict/realtime
+
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 wsserver
+USER wsserver
+
+COPY --from=builder /app/apps/realtime/dist ./dist
+COPY --from=builder /app/apps/realtime/package.json ./
+COPY --from=builder /app/node_modules ./node_modules
+
+EXPOSE 4001
+CMD ["node", "dist/index.js"]

@@ -1,0 +1,43 @@
+[project]
+name = "market-predict-ai-engine"
+version = "0.1.0"
+description = "AI Engine for Market Predict - Cultural Prediction Market Platform"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "pydantic>=2.6.0",
+    "pydantic-settings>=2.1.0",
+    "python-dotenv>=1.0.0",
+    "sqlalchemy>=2.0.25",
+    "asyncpg>=0.29.0",
+    "redis>=5.0.1",
+    "httpx>=0.26.0",
+    "numpy>=1.26.3",
+    "pandas>=2.2.0",
+    "scikit-learn>=1.4.0",
+    "lightgbm>=4.3.0",
+    "python-jose[cryptography]>=3.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "black>=24.1.0",
+    "ruff>=0.1.14",
+    "mypy>=1.8.0",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true

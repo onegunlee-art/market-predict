@@ -1,0 +1,93 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+.venv/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+.pytest_cache/
+htmlcov/
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
+# Turbo
+.turbo/
+
+# Docker
+docker-compose.override.yml
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Secrets
+*.pem
+*.key
+secrets/
+
+# Misc
+*.tsbuildinfo
+.eslintcache
+.cache/
+
+# AI/ML
+*.h5
+*.pkl
+*.model
+models/
+checkpoints/
+*.onnx
+
+# Data
+data/
+*.csv
+*.parquet
+!**/fixtures/**/*.csv
+
+# Uploaded files
+uploads/
+public/uploads/
+
+# Temporary
+tmp/
+temp/
+*.tmp

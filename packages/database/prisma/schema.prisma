@@ -1,0 +1,578 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== ENUMS ====================
+
+enum AuthProvider {
+  EMAIL
+  KAKAO
+  GOOGLE
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  MODERATOR
+  ANALYST
+  VERIFIED_CREATOR
+  USER
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+  PENDING
+}
+
+enum MarketStatus {
+  DRAFT
+  PENDING_REVIEW
+  ACTIVE
+  PAUSED
+  CLOSED
+  RESOLVED
+  CANCELLED
+}
+
+enum MarketOutcome {
+  YES
+  NO
+  CANCELLED
+  PENDING
+}
+
+enum MarketCategory {
+  KPOP
+  MOVIE
+  DRAMA
+  TV_SHOW
+  BEAUTY
+  CONSUMER
+  VIRAL
+  OTHER
+}
+
+enum TradeSide {
+  YES
+  NO
+}
+
+enum TradeStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ContentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+enum ContentSourceType {
+  TMDB
+  YOUTUBE
+  SPOTIFY
+  TIKTOK
+  IMDB
+  MANUAL
+  OTHER
+}
+
+enum IngestionJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum ModerationAction {
+  APPROVE
+  REJECT
+  FLAG
+  UNFLAG
+  SUSPEND
+  UNSUSPEND
+  BAN
+  UNBAN
+  DELETE
+  RESTORE
+}
+
+enum PermissionAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  MANAGE
+}
+
+enum AnnouncementType {
+  INFO
+  WARNING
+  ALERT
+  MAINTENANCE
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum FraudAlertType {
+  UNUSUAL_VOLUME
+  PATTERN_DETECTED
+  MANIPULATION
+  WASH_TRADING
+}
+
+// ==================== USER MODELS ====================
+
+model User {
+  id            String       @id @default(uuid())
+  email         String?      @unique
+  passwordHash  String?
+  username      String?      @unique
+  displayName   String?
+  avatarUrl     String?
+  authProvider  AuthProvider @default(EMAIL)
+  kakaoId       String?      @unique
+  googleId      String?      @unique
+  balance       Decimal      @default(10000) @db.Decimal(18, 2)
+  reputationScore Int        @default(0)
+  role          UserRole     @default(USER)
+  status        UserStatus   @default(ACTIVE)
+  emailVerified Boolean      @default(false)
+  lastLoginAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  // Relations
+  trades            Trade[]
+  positions         Position[]
+  createdMarkets    Market[]         @relation("MarketCreator")
+  reviewedContent   Content[]        @relation("ContentReviewer")
+  ingestionJobs     IngestionJob[]
+  moderationLogs    ModerationLog[]  @relation("Moderator")
+  auditLogs         AuditLog[]
+  announcements     Announcement[]   @relation("AnnouncementCreator")
+  notifications     Notification[]
+  refreshTokens     RefreshToken[]
+
+  @@index([email])
+  @@index([username])
+  @@index([kakaoId])
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+// ==================== CONTENT MODELS ====================
+
+model Content {
+  id            String            @id @default(uuid())
+  title         String
+  originalTitle String?
+  description   String?           @db.Text
+  imageUrl      String?
+  thumbnailUrl  String?
+  category      MarketCategory
+  sourceType    ContentSourceType @default(MANUAL)
+  sourceId      String?
+  sourceUrl     String?
+  releaseDate   DateTime?
+  metadata      Json?
+  status        ContentStatus     @default(PENDING)
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  // Relations
+  reviewer      User?            @relation("ContentReviewer", fields: [reviewedBy], references: [id])
+  markets       Market[]
+  ingestionJobs IngestionJob[]
+
+  @@index([category])
+  @@index([status])
+  @@index([sourceType])
+  @@index([sourceId])
+  @@map("contents")
+}
+
+model IngestionJob {
+  id         String              @id @default(uuid())
+  url        String
+  sourceType ContentSourceType
+  status     IngestionJobStatus  @default(PENDING)
+  contentId  String?
+  error      String?             @db.Text
+  createdBy  String
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  // Relations
+  content    Content?  @relation(fields: [contentId], references: [id])
+  creator    User      @relation(fields: [createdBy], references: [id])
+
+  @@index([status])
+  @@index([createdBy])
+  @@map("ingestion_jobs")
+}
+
+// ==================== MARKET MODELS ====================
+
+model Market {
+  id               String        @id @default(uuid())
+  contentId        String?
+  question         String
+  description      String?       @db.Text
+  category         MarketCategory
+  probability      Decimal       @default(0.5) @db.Decimal(10, 8)
+  liquidityParam   Decimal       @default(100) @db.Decimal(18, 2)
+  yesShares        Decimal       @default(0) @db.Decimal(18, 8)
+  noShares         Decimal       @default(0) @db.Decimal(18, 8)
+  volume           Decimal       @default(0) @db.Decimal(18, 2)
+  status           MarketStatus  @default(DRAFT)
+  outcome          MarketOutcome @default(PENDING)
+  closesAt         DateTime
+  resolvedAt       DateTime?
+  resolutionSource String?
+  createdBy        String
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  // Relations
+  content    Content?       @relation(fields: [contentId], references: [id])
+  creator    User           @relation("MarketCreator", fields: [createdBy], references: [id])
+  trades     Trade[]
+  positions  Position[]
+  aiPriors   AIPrior[]
+  priceHistory MarketPricePoint[]
+  events     MarketEvent[]
+
+  @@index([category])
+  @@index([status])
+  @@index([outcome])
+  @@index([closesAt])
+  @@index([createdBy])
+  @@map("markets")
+}
+
+model MarketPricePoint {
+  id          String   @id @default(uuid())
+  marketId    String
+  probability Decimal  @db.Decimal(10, 8)
+  volume      Decimal  @db.Decimal(18, 2)
+  timestamp   DateTime @default(now())
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+
+  @@index([marketId, timestamp])
+  @@map("market_price_points")
+}
+
+model MarketEvent {
+  id          String   @id @default(uuid())
+  marketId    String
+  eventType   String
+  description String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+
+  @@index([marketId])
+  @@index([eventType])
+  @@map("market_events")
+}
+
+// ==================== TRADE MODELS ====================
+
+model Trade {
+  id                String      @id @default(uuid())
+  userId            String
+  marketId          String
+  side              TradeSide
+  shares            Decimal     @db.Decimal(18, 8)
+  cost              Decimal     @db.Decimal(18, 2)
+  avgPrice          Decimal     @db.Decimal(10, 8)
+  probabilityBefore Decimal     @db.Decimal(10, 8)
+  probabilityAfter  Decimal     @db.Decimal(10, 8)
+  status            TradeStatus @default(COMPLETED)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id])
+  market Market @relation(fields: [marketId], references: [id])
+
+  @@index([userId])
+  @@index([marketId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("trades")
+}
+
+model Position {
+  id          String   @id @default(uuid())
+  userId      String
+  marketId    String
+  yesShares   Decimal  @default(0) @db.Decimal(18, 8)
+  noShares    Decimal  @default(0) @db.Decimal(18, 8)
+  avgYesPrice Decimal  @default(0) @db.Decimal(10, 8)
+  avgNoPrice  Decimal  @default(0) @db.Decimal(10, 8)
+  realizedPnl Decimal  @default(0) @db.Decimal(18, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id])
+  market Market @relation(fields: [marketId], references: [id])
+
+  @@unique([userId, marketId])
+  @@index([userId])
+  @@index([marketId])
+  @@map("positions")
+}
+
+// ==================== AI MODELS ====================
+
+model AIPrior {
+  id           String   @id @default(uuid())
+  marketId     String
+  probability  Decimal  @db.Decimal(10, 8)
+  confidence   Decimal  @db.Decimal(10, 8)
+  modelVersion String
+  features     Json
+  explanation  String?  @db.Text
+  createdAt    DateTime @default(now())
+
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+
+  @@index([marketId])
+  @@index([createdAt])
+  @@map("ai_priors")
+}
+
+model TrendSignal {
+  id           String   @id @default(uuid())
+  contentId    String?
+  marketId     String?
+  signalType   String
+  platform     String
+  metric       String
+  value        Decimal  @db.Decimal(18, 4)
+  change       Decimal  @db.Decimal(10, 4)
+  significance Decimal  @db.Decimal(10, 8)
+  detectedAt   DateTime @default(now())
+
+  @@index([contentId])
+  @@index([marketId])
+  @@index([signalType])
+  @@index([detectedAt])
+  @@map("trend_signals")
+}
+
+// ==================== ADMIN MODELS ====================
+
+model Permission {
+  id          String           @id @default(uuid())
+  name        String           @unique
+  description String?
+  resource    String
+  action      PermissionAction
+  createdAt   DateTime         @default(now())
+
+  rolePermissions RolePermission[]
+
+  @@index([resource])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String   @id @default(uuid())
+  role         UserRole
+  permissionId String
+  createdAt    DateTime @default(now())
+
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([role, permissionId])
+  @@map("role_permissions")
+}
+
+model MenuItem {
+  id                 String     @id @default(uuid())
+  parentId           String?
+  label              String
+  icon               String?
+  route              String?
+  order              Int        @default(0)
+  isEnabled          Boolean    @default(true)
+  requiredPermission String?
+  visibleToRoles     UserRole[]
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  parent   MenuItem?  @relation("MenuHierarchy", fields: [parentId], references: [id])
+  children MenuItem[] @relation("MenuHierarchy")
+
+  @@index([parentId])
+  @@index([order])
+  @@map("menu_items")
+}
+
+model ModerationLog {
+  id          String           @id @default(uuid())
+  moderatorId String
+  targetType  String
+  targetId    String
+  action      ModerationAction
+  reason      String?          @db.Text
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+
+  moderator User @relation("Moderator", fields: [moderatorId], references: [id])
+
+  @@index([moderatorId])
+  @@index([targetType, targetId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("moderation_logs")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String
+  action     String
+  resource   String
+  resourceId String?
+  changes    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([resource, resourceId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Announcement {
+  id          String           @id @default(uuid())
+  title       String
+  content     String           @db.Text
+  type        AnnouncementType @default(INFO)
+  isActive    Boolean          @default(true)
+  startsAt    DateTime         @default(now())
+  endsAt      DateTime?
+  targetRoles UserRole[]
+  createdBy   String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  creator User @relation("AnnouncementCreator", fields: [createdBy], references: [id])
+
+  @@index([isActive])
+  @@index([startsAt, endsAt])
+  @@map("announcements")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  data      Json?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model FraudAlert {
+  id          String         @id @default(uuid())
+  userId      String
+  alertType   FraudAlertType
+  severity    AlertSeverity
+  description String         @db.Text
+  metadata    Json?
+  isResolved  Boolean        @default(false)
+  resolvedBy  String?
+  resolvedAt  DateTime?
+  createdAt   DateTime       @default(now())
+
+  @@index([userId])
+  @@index([alertType])
+  @@index([severity])
+  @@index([isResolved])
+  @@index([createdAt])
+  @@map("fraud_alerts")
+}
+
+// ==================== ANALYTICS MODELS ====================
+
+model AnalyticsEvent {
+  id         String   @id @default(uuid())
+  eventName  String
+  userId     String?
+  sessionId  String?
+  properties Json?
+  createdAt  DateTime @default(now())
+
+  @@index([eventName])
+  @@index([userId])
+  @@index([sessionId])
+  @@index([createdAt])
+  @@map("analytics_events")
+}
+
+model DailyStats {
+  id              String   @id @default(uuid())
+  date            DateTime @db.Date
+  activeUsers     Int      @default(0)
+  newUsers        Int      @default(0)
+  totalTrades     Int      @default(0)
+  totalVolume     Decimal  @default(0) @db.Decimal(18, 2)
+  activeMarkets   Int      @default(0)
+  resolvedMarkets Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  @@unique([date])
+  @@index([date])
+  @@map("daily_stats")
+}
