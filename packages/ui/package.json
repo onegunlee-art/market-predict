@@ -15,7 +15,8 @@
       "require": "./src/index.ts",
       "types": "./src/index.ts"
     },
-    "./globals.css": "./src/globals.css"
+    "./globals.css": "./src/globals.css",
+    "./tailwind.config": "./tailwind.config.ts"
   },
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --external react",
