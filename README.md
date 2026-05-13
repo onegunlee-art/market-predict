@@ -54,6 +54,37 @@ market-predict/
     └── nginx/         # NGINX configs
 ```
 
+## Quick Start (Local Pilot)
+
+로컬에서 전체 시스템을 빠르게 테스트하려면:
+
+```bash
+# 1. 저장소 클론 및 의존성 설치
+git clone https://github.com/onegunlee-art/market-predict.git
+cd market-predict
+pnpm install
+
+# 2. 환경변수 설정
+cp .env.example .env
+
+# 3. Docker로 PostgreSQL + Redis 실행
+docker compose -f infrastructure/docker-compose/docker-compose.dev.yml up -d
+
+# 4. 데이터베이스 스키마 적용
+pnpm db:push
+
+# 5. (선택) 초기 데이터 시드
+pnpm db:seed
+
+# 6. 개발 서버 실행
+pnpm dev
+```
+
+실행 후 접속:
+- **Web**: http://localhost:3000
+- **Admin**: http://localhost:3001
+- **API Docs**: http://localhost:4000/docs
+
 ## Getting Started
 
 ### Prerequisites
@@ -69,7 +100,7 @@ market-predict/
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/market-predict.git
+git clone https://github.com/onegunlee-art/market-predict.git
 cd market-predict
 
 # Install dependencies
@@ -80,10 +111,10 @@ cp .env.example .env
 # Edit .env with your configuration
 
 # Start databases
-docker-compose up -d postgres redis
+docker compose -f infrastructure/docker-compose/docker-compose.dev.yml up -d
 
 # Run database migrations
-pnpm db:migrate
+pnpm db:push
 
 # Seed initial data
 pnpm db:seed
@@ -125,7 +156,13 @@ pnpm format           # Format code
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed technical documentation.
 
-## Deployment (Railway)
+## Deployment
+
+### Vercel (web + admin)
+
+See [VERCEL_SETUP.md](./VERCEL_SETUP.md) for deploying Next.js apps to Vercel.
+
+### Railway (full stack)
 
 See [RAILWAY_SETUP.md](./RAILWAY_SETUP.md) for monorepo service layout, environment variables, and Supabase wiring on Railway.
 
