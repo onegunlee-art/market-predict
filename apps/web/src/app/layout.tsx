@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   description: 'A realtime cultural prediction exchange where crowd sentiment becomes market probability.',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: {
