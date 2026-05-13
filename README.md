@@ -125,6 +125,10 @@ pnpm format           # Format code
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed technical documentation.
 
+## Deployment (Railway)
+
+See [RAILWAY_SETUP.md](./RAILWAY_SETUP.md) for monorepo service layout, environment variables, and Supabase wiring on Railway.
+
 ## Product Philosophy
 
 See [PRODUCT.md](./PRODUCT.md) for product vision and UX principles.
